@@ -122,7 +122,7 @@ GROQ_API_KEY=your_groq_api_key_here
 ### 3. Download the Pakistan Penal Code PDF
 
 ```bash
-curl -L -o data/pdfs/pakistan_penal_code.pdf "https://www.unodc.org/cld/uploads/res/document/pak/1860/pakistan_penal_code_1860_html/Pakistan_Penal_Code_1860_incorporating_amendments_to_16_February_2017.pdf"
+powershell -Command "Invoke-WebRequest -Uri 'https://www.unodc.org/cld/uploads/res/document/pak/1860/pakistan_penal_code_1860_html/Pakistan_Penal_Code_1860_incorporating_amendments_to_16_February_2017.pdf' -OutFile 'data/pdfs/pakistan_penal_code.pdf'"
 ```
 
 ### 4. Run the ingestion pipeline
