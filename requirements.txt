@@ -1,0 +1,11 @@
+pymupdf
+langchain
+langchain-core
+langchain-text-splitters
+langchain-groq
+sentence-transformers
+chromadb
+python-dotenv
+fastapi
+uvicorn
+streamlit
