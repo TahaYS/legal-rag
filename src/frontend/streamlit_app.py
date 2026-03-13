@@ -2,17 +2,17 @@
 Legal RAG — Streamlit Frontend
 Chat interface for asking questions about the Pakistan Penal Code.
 
-Usage:
+Usage (local):
     streamlit run src/frontend/streamlit_app.py
 
-Note: This connects directly to the RAG pipeline (not through FastAPI)
-so you don't need to run the API server separately. For deployment,
-everything runs in one process.
+On Streamlit Cloud, the app auto-downloads the PDF and runs
+the ingestion pipeline on first launch.
 """
 
 import os
 import sys
 import time
+import urllib.request
 
 import streamlit as st
 
@@ -85,6 +85,80 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ── Auto-initialization for Streamlit Cloud ─────────────────────
+
+PDF_URL = "https://www.unodc.org/cld/uploads/res/document/pak/1860/pakistan_penal_code_1860_html/Pakistan_Penal_Code_1860_incorporating_amendments_to_16_February_2017.pdf"
+PDF_PATH = "data/pdfs/pakistan_penal_code.pdf"
+CHROMA_DB_PATH = "chroma_db"
+
+
+def initialize_knowledge_base():
+    """
+    Auto-download PDF and run the ingestion pipeline if ChromaDB
+    doesn't exist yet. This handles first-run on Streamlit Cloud.
+    """
+    import chromadb
+    
+    # Check if ChromaDB already has data
+    if os.path.exists(CHROMA_DB_PATH):
+        try:
+            client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+            collection = client.get_collection("pakistan_penal_code")
+            if collection.count() > 0:
+                return  # Already initialized
+        except Exception:
+            pass  # Collection doesn't exist, need to initialize
+    
+    st.info("🔄 First run — setting up the legal knowledge base. This takes 2-3 minutes...")
+    progress = st.progress(0, text="Starting...")
+    
+    # Step 1: Download PDF if not present
+    if not os.path.exists(PDF_PATH):
+        progress.progress(10, text="📥 Downloading Pakistan Penal Code PDF...")
+        os.makedirs(os.path.dirname(PDF_PATH), exist_ok=True)
+        try:
+            urllib.request.urlretrieve(PDF_URL, PDF_PATH)
+        except Exception as e:
+            st.error(f"Failed to download PDF: {e}")
+            st.stop()
+    
+    # Step 2: Parse PDF
+    progress.progress(25, text="📄 Parsing PDF...")
+    from src.ingestion.pdf_parser import extract_text_from_pdf, extract_sections, save_extracted_data
+    
+    pages = extract_text_from_pdf(PDF_PATH)
+    os.makedirs("data/processed", exist_ok=True)
+    save_extracted_data(pages, "data/processed/raw_pages.json")
+    
+    # Step 3: Extract sections
+    progress.progress(40, text="📑 Extracting legal sections...")
+    sections = extract_sections(pages)
+    save_extracted_data(sections, "data/processed/sections.json")
+    
+    # Step 4: Chunk sections
+    progress.progress(55, text="✂️ Chunking sections...")
+    from src.ingestion.chunker import chunk_sections, save_chunks
+    
+    chunks = chunk_sections(sections)
+    save_chunks(chunks, "data/processed/chunks.json")
+    
+    # Step 5: Embed and store
+    progress.progress(70, text="🧠 Generating embeddings (this takes a minute)...")
+    from src.ingestion.embedder import create_embedder, create_vector_store, embed_and_store
+    
+    model = create_embedder()
+    client = create_vector_store(CHROMA_DB_PATH)
+    embed_and_store(chunks, model, client)
+    
+    progress.progress(100, text="✅ Knowledge base ready!")
+    time.sleep(1)
+    progress.empty()
+
+
+# Run initialization
+initialize_knowledge_base()
 
 
 # ── Load Pipeline (cached so it only loads once) ────────────────

@@ -22,7 +22,25 @@ load_dotenv()
 
 # ── Configuration ───────────────────────────────────────────────
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+def get_groq_api_key():
+    """
+    Get the Groq API key from either:
+    1. Streamlit Cloud secrets (when deployed)
+    2. .env file (when running locally)
+    """
+    # Try Streamlit secrets first (for Streamlit Cloud deployment)
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+            return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+    
+    # Fall back to .env file
+    return os.getenv("GROQ_API_KEY")
+
+
+GROQ_API_KEY = get_groq_api_key()
 GROQ_MODEL = "llama-3.1-8b-instant"    # Fast, free-tier friendly
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 CHROMA_DB_PATH = "chroma_db"
@@ -210,14 +228,17 @@ def create_generator():
     
     Chain: prompt template → Groq LLM → string output
     """
-    if not GROQ_API_KEY:
+    api_key = get_groq_api_key()
+    
+    if not api_key:
         raise ValueError(
             "GROQ_API_KEY not found. "
-            "Create a .env file with: GROQ_API_KEY=your_key_here"
+            "Create a .env file with: GROQ_API_KEY=your_key_here "
+            "or set it in Streamlit Cloud secrets."
         )
 
     llm = ChatGroq(
-        api_key=GROQ_API_KEY,
+        api_key=api_key,
         model=GROQ_MODEL,
         temperature=0.1,        # Low temperature = more factual, less creative
         max_tokens=1024,
