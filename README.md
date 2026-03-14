@@ -8,6 +8,8 @@ An AI-powered legal assistant that answers questions about the **Pakistan Penal 
 ![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-teal)
 
+🔗 **[Try the Live Demo](https://legal-rag-phsvdctnkabk3su5qyf7ew.streamlit.app/)**
+
 ---
 
 ## 🎯 What it does
@@ -105,7 +107,7 @@ legal-rag/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/legal-rag.git
+git clone https://github.com/TahaYS/legal-rag.git
 cd legal-rag
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
